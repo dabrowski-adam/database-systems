@@ -204,6 +204,8 @@ GO
 
 -- SQL - part 3
 -- Use HR schema: Run hr_schema.sql script to create the database and tables. Then run hr_data.sql to populate this database with data.
+USE HR;
+GO
 
 -- 1. Determine the structure of all database's tables.
 SELECT * FROM information_schema.columns;
@@ -281,33 +283,62 @@ SELECT MAX(salary) - MIN(salary) AS 'DIFFERENCE'
 FROM employees;
 
 -- 15. Find the addresses of all the departments. Use the LOCATIONS and COUNTRIES tables. Show the location ID, street address, city, state or province, and country in the output.
-
+SELECT location_id, street_address, city, state_province, country_name FROM
+(
+	SELECT dep.location_id, street_address, city, state_province, country_id FROM
+	(SELECT location_id FROM departments) AS dep 
+	JOIN 
+	locations ON dep.location_id = locations.location_id
+) AS tmp
+JOIN
+countries ON tmp.country_id = countries.country_id;
 
 -- 16. Display the last name and department name for all employees.
-
+SELECT last_name, department_name FROM
+	(SELECT last_name, department_id from employees) AS adam
+	JOIN 
+	departments ON adam.department_id=departments.department_id;
 
 -- 17. Display the last name, job, department number, and department name for all employees who work in Toronto.
-
-
+SELECT last_name, job_id, employees.department_id, department_name FROM
+	employees
+	JOIN
+	(SELECT department_id, department_name FROM departments WHERE location_id IN 
+		(SELECT location_id FROM locations WHERE city = 'Toronto')) AS tmp
+	ON employees.department_id = tmp.department_id;
 
 -- If you have time, complete the following exercises:
 -- 1A. Create a report to display the manager number and the salary of the lowest-paid employee for that manager. Exclude and groups where the minimum salary is $6000 or less. Sort the output in descending order of salary.
-
+SELECT 
+	manager_id,
+	MIN(salary) AS Minimum
+FROM employees
+WHERE (manager_id IS NOT NULL) AND salary > 6000 
+GROUP BY manager_id
+ORDER BY Minimum DESC;
 
 -- 2A. The HR department wants to determine the names of all employees who were hired after Davies. Create a query to display the name and hire date of any employee hired after employee Davies.
-
+SELECT last_name, hire_date FROM employees 
+WHERE hire_date > (SELECT hire_date FROM employees WHERE last_name='Davies');
 
 -- 3A. The HR department needs to find the names and hire dates for all employees who were hired before their managers, along with their managers' names and hire dates
-
+SELECT employees.last_name, employees.hire_date, managers.last_name, managers.hire_date FROM
+	employees
+	JOIN
+	employees AS managers
+	ON employees.manager_id = managers.employee_id;
 
 -- 4A. Create a report that displays the employee number, last name, and salary of all employees who earn more than the avarage salary. Sort the results in order of ascending salary.
-
+SELECT employee_id, last_name, salary FROM employees 
+WHERE salary > (SELECT AVG(salary) FROM employees)
+ORDER BY salary ASC;
 
 -- 5A. Write a query that displays the employee number and last name of all employees who work in a depatrment with any employee whose last name starts with "U"
-
+SELECT employee_id, last_name FROM employees
+WHERE department_id IN (SELECT department_id FROM EMPLOYEES WHERE last_name LIKE 'u%');
 
 -- 6A. Create a report for HR that displays the last name and salary of every employee who reports to King.
-
+SELECT last_name, salary FROM employees WHERE manager_id IN (SELECT employee_id FROM employees WHERE last_name='King');
 
 -- 7A. For budgeting purposes, the HR department needs a report on projected 10% raises. The report shoud display those employees who have no commisions
-
+SELECT 'The salary of ' + last_name + ' after a 10% raise is ' + CONVERT(varchar, (TRY_CONVERT(int, salary) * 1.1)) FROM employees WHERE commission_pct IS NULL;
