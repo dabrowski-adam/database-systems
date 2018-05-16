@@ -350,29 +350,190 @@ WHERE commission_pct IS NULL;
 -- Use HR schema: Run hr_schema.sql script to create the database and tables. Then run hr_data.sql to populate this database with data.
 
 -- 1. Show last names and numbers of all managers together with the number of employees that are his / her subortinates.
+SELECT last_name, employee_id, managers.employees FROM
+employees
+	JOIN
+(SELECT manager_id, COUNT(manager_id) AS employees
+	FROM employees
+	WHERE manager_id IS NOT NULL
+	GROUP BY manager_id) AS managers
+ON employees.employee_id = managers.manager_id;
 
 -- 2. Create a report that displays the department name, location name, job title and salary of those employeses who work in a specific (given) location.
+SELECT department_name, location_id, last_name, job_title, salary
+FROM
+	jobs
+	JOIN
+	(
+		SELECT department_name, location_id, last_name, job_id, salary
+		FROM
+			employees
+			JOIN
+			departments
+			ON employees.department_id = departments.department_id
+	) AS data
+	ON jobs.job_id = data.job_id
+WHERE location_id = 1400;
+-- as a table-valued function
+CREATE FUNCTION GenerateReport(@location INT)
+	RETURNS TABLE
+	AS
+	RETURN
+		SELECT department_name, location_id, last_name, job_title, salary
+		FROM
+			jobs
+			JOIN
+			(
+				SELECT department_name, location_id, last_name, job_id, salary
+				FROM
+					employees
+					JOIN
+					departments
+					ON employees.department_id = departments.department_id
+			) AS data
+			ON jobs.job_id = data.job_id
+		WHERE location_id = @location;
+
+GO;
+
+SELECT * FROM GenerateReport(1400);
 
 -- 3. Find the number of employees who have a last name that ends with the letter n.
+SELECT COUNT(last_name) AS 'Nr of employees whose last name ends with n'
+FROM employees
+WHERE last_name LIKE '%n';
 
 -- 4. Create a report that shows the name, location and the number of employees for each department. Make sure that report also includes departments without employees.
+SELECT department_name, location_id, ISNULL(employees, 0)
+FROM
+	departments
+	LEFT JOIN
+	(
+		SELECT department_id, COUNT(department_id) AS employees
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id
+	) AS emp_count
+	ON departments.department_id = emp_count.department_id;
 
 -- 5. Show all employees who were hired in the first five days of the month (before the 6th of the month).
+SELECT last_name, hire_date
+FROM employees
+WHERE DAY(hire_date) < 6;
 
 -- 6. Create a report to display the department number and lowest salary of the department with the highest average salary.
+SELECT TOP 1 department_id, avg_salary FROM
+	(
+		SELECT department_id, AVG(salary) AS avg_salary
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id
+	) AS department_earnings
+ORDER BY avg_salary ASC;
 
 -- 7. Create a report that displays department where no sales representatives work. Include the deprtment number, department name and location in the output.
+SELECT department_id, department_name, location_id
+FROM departments
+WHERE department_id NOT IN
+	(
+		SELECT DISTINCT d.department_id
+		FROM
+			departments d
+			JOIN
+			employees e
+			ON d.department_id = e.department_id
+		WHERE job_id = 'SA_REP'
+	);
 
 -- 8. Display the depatrment number, department name and the number of employees for the department:
 -- a. with the highest number of employees.
+WITH dep_employees AS (
+	SELECT department_id, COUNT(employee_id) AS employed
+	FROM employees
+	WHERE department_id IS NOT NULL
+	GROUP BY department_id
+)
+SELECT departments.department_id, department_name, employed
+FROM
+	departments
+	JOIN
+	(SELECT *
+	 	FROM dep_employees
+		WHERE employed = (SELECT MAX(employed) FROM dep_employees)) AS data
+	ON departments.department_id = data.department_id;
+-- if only one department is needed one could use a simpler query
+SELECT TOP 1 d.department_id, department_name, employed
+FROM
+	departments d
+	JOIN
+	(SELECT department_id, COUNT(employee_id) AS employed
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id) AS data
+	ON d.department_id = data.department_id
+ORDER BY employed DESC;
 
 -- b. with the lowest number of employees
+WITH dep_employees AS (
+	SELECT department_id, COUNT(employee_id) AS employed
+	FROM employees
+	WHERE department_id IS NOT NULL
+	GROUP BY department_id
+)
+SELECT departments.department_id, department_name, employed
+FROM
+	departments
+	JOIN
+	(SELECT *
+	 	FROM dep_employees
+		WHERE employed = (SELECT MIN(employed) FROM dep_employees)) AS data
+	ON departments.department_id = data.department_id;
 
 -- c. that employs fewer than three employees.
+SELECT d.department_id, department_name, employed
+FROM
+	departments d
+	JOIN
+	(SELECT department_id, COUNT(employee_id) AS employed
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id) AS data
+	ON d.department_id = data.department_id
+WHERE employed < 3;
+-- or
+SELECT d.department_id, department_name, employed
+FROM
+	departments d
+	JOIN
+	(SELECT department_id, COUNT(employee_id) AS employed
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id
+		HAVING COUNT(employee_id) < 3) AS data
+	ON d.department_id = data.department_id;
 
 -- 9. Display years and total numbers of employees that were employed in that year.
+SELECT year, COUNT(employee_id)
+FROM
+	(
+		SELECT YEAR(hire_date) AS year, employee_id
+		FROM employees
+	) AS years
+GROUP BY year
+ORDER BY year DESC;
 
 -- 10. Display countries and number of locations in that country.
+SELECT country_name, ISNULL(number, 0) AS locations
+FROM
+	countries
+	LEFT JOIN
+	(
+		SELECT country_id, COUNT(country_id) AS number
+		FROM locations
+		GROUP BY country_id
+	) AS data
+	ON countries.country_id = data.country_id
+ORDER BY locations DESC;
 
 -- If you have time, complete the following exercises:
 -- A1. Create a query to display the employees who earn a salary that is higher than the salary of all the sales managers (JOB_ID = 'SA_MAN'). Sort the results from the highest to the lowest.
