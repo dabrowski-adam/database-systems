@@ -122,7 +122,6 @@ CREATE TABLE book_loans (
 
 -- 3. Add data from the script (library_eng_data.sql). In case of errors, check the defined structure again..
 
-
 -- 4. There is Gender field in Employees table omitted (it should contain 'F' or "M' value). Correct this mistake.
 ALTER TABLE employees ADD 
 Gender char(1),
@@ -201,6 +200,7 @@ CREATE TABLE rental (
 	FOREIGN KEY (copy_id, title_id) REFERENCES title_copy(copy_id, title_id)
 );
 GO
+
 
 -- SQL - part 3
 -- Use HR schema: Run hr_schema.sql script to create the database and tables. Then run hr_data.sql to populate this database with data.
@@ -307,11 +307,10 @@ SELECT last_name, job_id, employees.department_id, department_name FROM
 		(SELECT location_id FROM locations WHERE city = 'Toronto')) AS tmp
 	ON employees.department_id = tmp.department_id;
 
+
 -- If you have time, complete the following exercises:
 -- 1A. Create a report to display the manager number and the salary of the lowest-paid employee for that manager. Exclude and groups where the minimum salary is $6000 or less. Sort the output in descending order of salary.
-SELECT 
-	manager_id,
-	MIN(salary) AS Minimum
+SELECT manager_id, MIN(salary) AS Minimum
 FROM employees
 WHERE (manager_id IS NOT NULL) AND salary > 6000 
 GROUP BY manager_id
@@ -345,6 +344,7 @@ WHERE manager_id IN (SELECT employee_id FROM employees WHERE last_name='King');
 SELECT 'The salary of ' + last_name + ' after a 10% raise is ' + CONVERT(varchar, (TRY_CONVERT(int, salary) * 1.1)) AS "Report"
 FROM employees
 WHERE commission_pct IS NULL;
+
 
 -- SQL - part 4
 -- Use HR schema: Run hr_schema.sql script to create the database and tables. Then run hr_data.sql to populate this database with data.
@@ -484,9 +484,11 @@ SELECT departments.department_id, department_name, employed
 FROM
 	departments
 	JOIN
-	(SELECT *
+	(
+		SELECT *
 	 	FROM dep_employees
-		WHERE employed = (SELECT MIN(employed) FROM dep_employees)) AS data
+		WHERE employed = (SELECT MIN(employed) FROM dep_employees)
+	) AS data
 	ON departments.department_id = data.department_id;
 
 -- c. that employs fewer than three employees.
@@ -494,10 +496,12 @@ SELECT d.department_id, department_name, employed
 FROM
 	departments d
 	JOIN
-	(SELECT department_id, COUNT(employee_id) AS employed
+	(
+		SELECT department_id, COUNT(employee_id) AS employed
 		FROM employees
 		WHERE department_id IS NOT NULL
-		GROUP BY department_id) AS data
+		GROUP BY department_id
+	) AS data
 	ON d.department_id = data.department_id
 WHERE employed < 3;
 -- or
@@ -505,11 +509,13 @@ SELECT d.department_id, department_name, employed
 FROM
 	departments d
 	JOIN
-	(SELECT department_id, COUNT(employee_id) AS employed
+	(
+		SELECT department_id, COUNT(employee_id) AS employed
 		FROM employees
 		WHERE department_id IS NOT NULL
 		GROUP BY department_id
-		HAVING COUNT(employee_id) < 3) AS data
+		HAVING COUNT(employee_id) < 3
+	) AS data
 	ON d.department_id = data.department_id;
 
 -- 9. Display years and total numbers of employees that were employed in that year.
@@ -534,6 +540,7 @@ FROM
 	) AS data
 	ON countries.country_id = data.country_id
 ORDER BY locations DESC;
+
 
 -- If you have time, complete the following exercises:
 -- A1. Create a query to display the employees who earn a salary that is higher than the salary of all the sales managers (JOB_ID = 'SA_MAN'). Sort the results from the highest to the lowest.
