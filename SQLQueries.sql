@@ -621,6 +621,9 @@ WHERE EXISTS
 );
 
 -- A7. Display the department names of those depatrments whose total salary cost is above one-eight (1/8) of the total salary cost od the whole company. Use the WITH clause to write this query. Name the query SUMMARY.
+CREATE PROCEDURE summary AS
+BEGIN
+
 WITH company_total AS (
 	SELECT SUM(salary) AS total
 	FROM employees
@@ -636,6 +639,10 @@ FROM
 		HAVING SUM(salary) > (SELECT (total * 1/8 ) FROM company_total)
 	) AS data
 	ON departments.department_id = data.department_id;
+
+END;
+
+EXECUTE summary;
 
 -- A8. Delete the oldest JOB_HISTORY row of an employee by looking up the JOB_HISTORY table for the MIN(START_DATE) for the employee. Delete the records of only those employees who have changed at least two jobs.
 WITH oldest_jobs AS (
