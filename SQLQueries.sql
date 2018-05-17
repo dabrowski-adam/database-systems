@@ -638,4 +638,35 @@ FROM
 	ON departments.department_id = data.department_id;
 
 -- A8. Delete the oldest JOB_HISTORY row of an employee by looking up the JOB_HISTORY table for the MIN(START_DATE) for the employee. Delete the records of only those employees who have changed at least two jobs.
+WITH oldest_jobs AS (
+		SELECT
+			employee_id,
+			MIN(start_date)    AS start
+		FROM job_history
+		GROUP BY employee_id
+		HAVING COUNT(employee_id) > 1
+)
+DELETE
+FROM job_history
+WHERE
+	-- is currently employed
+	EXISTS (
+			SELECT employee_id
+			FROM employees
+			WHERE
+				employee_id = job_history.employee_id
+				AND job_id IS NOT NULL
+	)
+	-- had been employed twice before
+	AND EXISTS (
+			SELECT employee_id
+			FROM oldest_jobs
+			WHERE
+				employee_id = job_history.employee_id
+				AND start = job_history.start_date
+	);
+
+
+SELECT * FROM job_history;
+
 
