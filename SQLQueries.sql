@@ -422,12 +422,11 @@ FROM employees
 WHERE DAY(hire_date) < 6;
 
 -- 6. Create a report to display the department number and lowest salary of the department with the highest average salary.
--- TODO: Check
 SELECT TOP 1 department_id, salary
 FROM employees
 WHERE department_id IN
 	(
-		SELECT TOP 1 department_id, avg_salary FROM
+		SELECT TOP 1 department_id FROM
 		(
 			SELECT department_id, AVG(salary) AS avg_salary
 			FROM employees
@@ -551,10 +550,34 @@ ORDER BY locations DESC;
 
 -- If you have time, complete the following exercises:
 -- A1. Create a query to display the employees who earn a salary that is higher than the salary of all the sales managers (JOB_ID = 'SA_MAN'). Sort the results from the highest to the lowest.
+SELECT employee_id FROM employees
+WHERE salary > (SELECT MAX(salary) FROM EMPLOYEES WHERE job_id='SA_MAN');
 
 -- A2. Display details such as the employee ID, last name, and department ID of those employees who works in cities the names of which begin with 'T'.
+SELECT employee_id, last_name, e.department_id
+FROM
+	employees e
+	JOIN
+	departments d
+	ON e.department_id = d.department_id
+WHERE location_id IN
+	(SELECT location_id FROM locations WHERE city LIKE 'T%');
 
--- A3. Write a query to find all employees who earn more than the average salary in their
+-- A3. Write a query to find all employees who earn more than the average salary in their dep
+SELECT employee_id, last_name, salary, dep_salaries.department_id, avg_salary
+FROM
+	employees
+	JOIN
+	(
+		SELECT
+			department_id,
+			AVG(salary) AS avg_salary
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id
+	) AS dep_salaries
+	ON employees.department_id = dep_salaries.department_id
+WHERE salary > avg_salary;
 
 -- A4. Find all employees who are not sumervisors (managers). Do this using the NOT EXISTS operator.
 
