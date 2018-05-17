@@ -641,7 +641,7 @@ FROM
 WITH oldest_jobs AS (
 		SELECT
 			employee_id,
-			MIN(start_date)    AS start
+			MIN(start_date) AS start
 		FROM job_history
 		GROUP BY employee_id
 		HAVING COUNT(employee_id) > 1
@@ -666,7 +666,25 @@ WHERE
 				AND start = job_history.start_date
 	);
 
-
-SELECT * FROM job_history;
-
-
+-- or more concise
+DELETE j
+FROM job_history AS j
+WHERE
+	-- is currently employed
+	EXISTS (
+			SELECT employee_id
+			FROM employees
+			WHERE
+				employee_id = j.employee_id
+				AND job_id IS NOT NULL
+	)
+	-- had been employed twice before
+	AND EXISTS (
+			SELECT employee_id
+			FROM job_history
+			WHERE
+				employee_id = j.employee_id
+				AND start_date = j.start_date
+			GROUP BY employee_id
+			HAVING COUNT(employee_id) > 1
+	);
