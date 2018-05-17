@@ -580,14 +580,62 @@ FROM
 WHERE salary > avg_salary;
 
 -- A4. Find all employees who are not sumervisors (managers). Do this using the NOT EXISTS operator.
-
+SELECT employee_id
+FROM employees e
+WHERE NOT EXISTS
+	(SELECT manager_id FROM employees WHERE manager_id = e.employee_id)
+ORDER BY employee_id ASC;
 -- Can it be done using NOT IN operator?
+SELECT employee_id
+FROM employees
+WHERE employee_id NOT IN
+	(SELECT DISTINCT manager_id FROM employees WHERE manager_id IS NOT NULL)
+ORDER BY employee_id ASC;
 
 -- A5. Display the last names of the employees who earn less than the average salary in their departments.
+SELECT last_name
+FROM
+	employees
+	JOIN
+	(
+		SELECT
+			department_id,
+			AVG(salary) AS avg_salary
+		FROM employees
+		WHERE department_id IS NOT NULL
+		GROUP BY department_id
+	) AS dep_salaries
+	ON employees.department_id = dep_salaries.department_id
+WHERE salary < avg_salary;
 
 -- A6. Display the last names of the employees who have one or more coworkers in their departments with later hire dates but higher salaries.
+SELECT last_name
+FROM employees e
+WHERE EXISTS
+(
+	SELECT employee_id
+	FROM employees
+	WHERE department_id = e.department_id
+		AND hire_date > e.hire_date
+		AND salary > e.salary
+);
 
 -- A7. Display the department names of those depatrments whose total salary cost is above one-eight (1/8) of the total salary cost od the whole company. Use the WITH clause to write this query. Name the query SUMMARY.
+WITH company_total AS (
+	SELECT SUM(salary) AS total
+	FROM employees
+)
+SELECT department_name, dep_total
+FROM
+	departments
+	JOIN
+	(
+		SELECT department_id, SUM(salary) AS dep_total
+		FROM employees
+		GROUP BY department_id
+		HAVING SUM(salary) > (SELECT (total * 1/8 ) FROM company_total)
+	) AS data
+	ON departments.department_id = data.department_id;
 
 -- A8. Delete the oldest JOB_HISTORY row of an employee by looking up the JOB_HISTORY table for the MIN(START_DATE) for the employee. Delete the records of only those employees who have changed at least two jobs.
 
