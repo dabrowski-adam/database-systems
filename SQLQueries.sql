@@ -351,7 +351,7 @@ WHERE commission_pct IS NULL;
 
 -- 1. Show last names and numbers of all managers together with the number of employees that are his / her subortinates.
 SELECT last_name, employee_id, managers.employees FROM
-employees
+	employees
 	JOIN
 (SELECT manager_id, COUNT(manager_id) AS employees
 	FROM employees
@@ -422,14 +422,21 @@ FROM employees
 WHERE DAY(hire_date) < 6;
 
 -- 6. Create a report to display the department number and lowest salary of the department with the highest average salary.
-SELECT TOP 1 department_id, avg_salary FROM
+-- TODO: Check
+SELECT TOP 1 department_id, salary
+FROM employees
+WHERE department_id IN
 	(
-		SELECT department_id, AVG(salary) AS avg_salary
-		FROM employees
-		WHERE department_id IS NOT NULL
-		GROUP BY department_id
-	) AS department_earnings
-ORDER BY avg_salary ASC;
+		SELECT TOP 1 department_id, avg_salary FROM
+		(
+			SELECT department_id, AVG(salary) AS avg_salary
+			FROM employees
+			WHERE department_id IS NOT NULL
+			GROUP BY department_id
+		) AS department_earnings
+		ORDER BY avg_salary DESC
+	)
+ORDER BY salary ASC;
 
 -- 7. Create a report that displays department where no sales representatives work. Include the deprtment number, department name and location in the output.
 SELECT department_id, department_name, location_id
